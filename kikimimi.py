@@ -17,9 +17,11 @@ astronauts = ["ColChrisHadfield"]
 
 chefs = ["iamAnthonyBourdain"]
 
-comedians =["_WillFerrell", "iamlouisck", "MrJohnCReilly", "_Seinfeld", "_BillMurray", "JoeRoganForReals", "RobinWilliamsHere", "BatemanJason", "ThatKevinSmith"]
+comedians =["_WillFerrell", "iamlouisck", "MrJohnCReilly", "_Seinfeld", "_BillMurray",
+		    "JoeRoganForReals", "RobinWilliamsHere", "BatemanJason", "ThatKevinSmith"]
 
-actors = ["iamdavidblaine", "thebryancranston", "RealMarkHamill", "Terry_Gilliam", "Al_the_hologram", "williamshatner", "GovSchwarzenegger", "IamDolphLundgren"]
+actors = ["iamdavidblaine", "thebryancranston", "RealMarkHamill", "Terry_Gilliam", 
+          "Al_the_hologram", "williamshatner", "GovSchwarzenegger", "IamDolphLundgren"]
 
 musicians = ["alyankovic", "Here_Comes_The_King"]
 
