@@ -174,7 +174,7 @@ class RedditBot(object):
 			chunk_size = self.chunk_size
 
 		last_name = celeb_lookup[username].split()[-1]
-		last_name.replace('.','')
+		last_name = last_name.replace('.','')
 		size_designator = "COMPLETE" if len(comments) > 1000 else "SMALL"
 
 		author_dir = os.path.join(os.getcwd(), self.out_dir, size_designator, last_name)
@@ -195,3 +195,8 @@ class RedditBot(object):
 				f.write(chunk.encode('utf8'))
 			
 			file_id += 1
+
+if __name__ == "__main__":
+	print "gathering comments for celebrities..."
+	poo = RedditBot()
+	poo.run_all()
