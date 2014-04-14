@@ -5,11 +5,27 @@ import os
 
 
 ###regex
-url_pattern = r'(\s*https?:\/\/.*[\r\n]*)'
+url_pattern = r'(https?:\/\/.*[\r\n]*)'
+punct_pattern = re.compile("(([)!?.'(*-8;:=<?>@DP[\]\\dop{}|]+\s?)+)")
+punct = "!')(*-.8;:=<?>@DP[]\dop{}|"
+
+###
+token_pattern = r'''(?x)              # set flag to allow verbose regexps
+                 https?\://([^ ,;:()`'"])+   # URLs
+                | [<>]?[:;=8][\-o\*\']?[\)\]\(\[dDpP/\:\}\{@\|\\]   # emoticons
+                | [\)\]\(\[dDpP/\:\}\{@\|\\][\-o\*\']?[:;=8][<>]?   # emoticons, reverse orientation
+                | ([A-Z]\.)+                # abbreviations, e.g. "U.S.A."
+                | \w+(-\w+)*                # words with optional internal hyphens
+                | \$?\d+(\.\d+)?%?          # currency and percentages
+                | \.\.\.                    # ellipsis
+                | @+[\w_]+                  # twitter-style user names
+                | \#+[\w_]+[\w\'_\-]*[\w_]+ # hashtags
+                | [.,;"'?():-_`]            # these are separate tokens
+                '''
 
 
 ###celebrities
-politicians =["PresidentObama", "hooshangamirahmadi", "GovSchwarzenegger"]
+politicians =[u"PresidentObama", "hooshangamirahmadi", "GovSchwarzenegger"]
 
 muscle_guys = ["GovSchwarzenegger", "IamDolphLundgren"]
 
@@ -112,21 +128,19 @@ class RedditBot(object):
 	def get_comments(self, username, comment_limit=None, clean=True):
 		"""
 		"""
+		username = unicode(username)
 		try:
 			user = self.bot.get_redditor(username)
 			comments = list()
 			for comment in user.get_comments(limit=comment_limit):
 				body = comment.body
-				if len(body.split()) > 1:
-					if clean:
-						body = self.clean_comment(body)
-					comments.append(body)
-					self.yap(body)
-				else:
-					self.yap("!!!short comment found: \n\t\"{0}\"".format(body))
+				if clean:
+					body = self.clean_comment(body)
+				comments.append(body)
+				self.yap(body)
+
 		except Exception, e:
-			print e
-			print "problem with {0}".format(username)
+			print "Exception with {user}: {error}".format(user=username, error=e)
 		if comments:
 			self.user_comments[username]=comments
 
@@ -144,27 +158,82 @@ class RedditBot(object):
 	def clean_comment(self, comment):
 		"""
 		"""
-		clean_comment = re.sub(url_pattern, 'URL', comment, flags=re.MULTILINE)
+		clean_comment = re.sub(url_pattern, " URL ", comment, flags=re.MULTILINE)
+		clean_comment = re.sub("&amp;", "&", comment, flags=re.MULTILINE)
 		return clean_comment
+
+
+	def allPunct(self, w):
+		return True if all([c in punct for c in w]) else False
+
+	def joinPunctuationSequence(self, sentence):
+		"""
+		join a punctuation sequence 
+		into a single token
+		"""
+		#ensure sentence is a list
+		sentence = sentence.split() if type(sentence) is not list else sentence
+		text = u""
+		for i in range(len(sentence)):	
+			w = sentence[i]
+			if self.allPunct(w) and (0 <= i-1 <= len(sentence)) and (i+1 < len(sentence)):
+				prev_w = sentence[i-1]
+				next_w = sentence[i+1]
+				if self.allPunct(next_w):
+					text += w
+				else:
+					text += u"{0} ".format(w)
+			else:
+				text += u"{0} ".format(w)
+
+		text = unicode(text).split()
+		return text
+
+	def correct_tokenization(self, comments):
+		"""
+		correct tokenization.
+		
+		combine single element lists 
+		of puncutation with previous line
+
+		combine sequences of punctuation 
+		into a single token (ex. emoticons)
+		"""
+		self.yap("Joining orphaned lines of punctuation...")
+		corrected = []
+		for line in comments:
+			if all([w in punct for w in line]):
+				corrected[-1] = corrected[-1] + line if corrected else ""
+			else:
+				corrected.append(line)
+		#combine punctuation sequences into a single token
+		self.yap("Joining punctuation sequences... ")
+		corrected = [self.joinPunctuationSequence(c) for c in corrected]
+		return corrected
 
 	def tokenize_stuff(self, comments):
 		"""
 		"""
-		tokenized_comments = [nltk.tokenize.wordpunct_tokenize(sent) for comment in comments \
+		tokenized_comments = [nltk.tokenize.word_tokenize(sent) for comment in comments \
 							  for sent in nltk.tokenize.sent_tokenize(comment)]
+		#correct tokenization
+		tokenized_comments = self.correct_tokenization(tokenized_comments)
 		return tokenized_comments
 
 	def run_all(self):
 		"""
 		"""
 		for celeb in celebrities:
+			celeb = unicode(celeb)
+			self.yap("Retrieving comments...".format(celeb))
 			self.get_comments(celeb)
-			tokenized_comments = poo.tokenize_stuff(self.user_comments[celeb])
+			self.yap("Tokenizing comments...")
+			tokenized_comments = self.tokenize_stuff(self.user_comments[celeb])
 			self.user_comments[celeb] = tokenized_comments
-			print "username: {0}".format(celeb)
-			print "real name: {0}".format(celeb_lookup[celeb])
-			print "sentences: {0}\n".format(len(tokenized_comments))
-			self.yap("making files...")
+			print "USERNAME: {0}".format(celeb)
+			print "REAL NAME: {0}".format(celeb_lookup[celeb])
+			print "SENTENCE COUNT: {0}\n".format(len(tokenized_comments))
+			self.yap("Making files...")
 			self.make_files(celeb, tokenized_comments)
 
 	def make_files(self, username, comments, chunk_size=None, log_data=True):
@@ -181,10 +250,10 @@ class RedditBot(object):
 		self.create_directory(author_dir)
 		
 		if log_data:
-			self.logger("username: {0}\n".format(username))
-			self.logger("real name: {0}\n".format(celeb_lookup[username]))
-			self.logger("sentences: {0}\n".format(len(comments)))
-			self.logger("location: {0}\n\n".format(os.path.join(self.out_dir, size_designator)))
+			self.logger("USERNAME: {0}\n".format(username))
+			self.logger("REAL NAME: {0}\n".format(celeb_lookup[username]))
+			self.logger("SENTENCE COUNT: {0}\n".format(len(comments)))
+			self.logger("LOCATION: {0}\n\n".format(os.path.join(self.out_dir, size_designator)))
 		
 		file_id = 0
 		for i in xrange(0, len(comments), chunk_size):
@@ -197,6 +266,6 @@ class RedditBot(object):
 			file_id += 1
 
 if __name__ == "__main__":
-	print "gathering comments for celebrities..."
 	poo = RedditBot()
+	print "Gathering comments for celebrities..."
 	poo.run_all()
