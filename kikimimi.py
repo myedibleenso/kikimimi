@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+from __future__ import unicode_literals, division
 import praw
 import nltk
 import re
@@ -25,7 +27,7 @@ token_pattern = r'''(?x)              # set flag to allow verbose regexps
 
 
 ###celebrities
-politicians =[u"PresidentObama", "hooshangamirahmadi", "GovSchwarzenegger"]
+politicians =["PresidentObama", "hooshangamirahmadi", "GovSchwarzenegger"]
 
 muscle_guys = ["GovSchwarzenegger", "IamDolphLundgren"]
 
@@ -128,7 +130,7 @@ class RedditBot(object):
 	def get_comments(self, username, comment_limit=None, clean=True):
 		"""
 		"""
-		username = unicode(username)
+		username = username
 		try:
 			user = self.bot.get_redditor(username)
 			comments = list()
@@ -173,7 +175,7 @@ class RedditBot(object):
 		"""
 		#ensure sentence is a list
 		sentence = sentence.split() if type(sentence) is not list else sentence
-		text = u""
+		text = ""
 		for i in range(len(sentence)):	
 			w = sentence[i]
 			if self.allPunct(w) and (0 <= i-1 <= len(sentence)) and (i+1 < len(sentence)):
@@ -182,11 +184,11 @@ class RedditBot(object):
 				if self.allPunct(next_w):
 					text += w
 				else:
-					text += u"{0} ".format(w)
+					text += "{0} ".format(w)
 			else:
-				text += u"{0} ".format(w)
+				text += "{0} ".format(w)
 
-		text = unicode(text).split()
+		text = text.split()
 		return text
 
 	def correct_tokenization(self, comments):
@@ -224,7 +226,7 @@ class RedditBot(object):
 		"""
 		"""
 		for celeb in celebrities:
-			celeb = unicode(celeb)
+			celeb = celeb
 			self.yap("Retrieving comments...".format(celeb))
 			self.get_comments(celeb)
 			self.yap("Tokenizing comments...")
